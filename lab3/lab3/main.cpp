@@ -28,6 +28,10 @@ double pochodna(double(*funkcja)(double), double x)
     return (funkcja(x + DOKLADNOSC) - funkcja(x)) / DOKLADNOSC;
 }
 
+double sinx_pochodna(double x) {
+    return (sin(x / 2.0)) / 4.0 - 1;
+}
+
 double picard_sin(double x)
 {
     return sin(x/4)*sin(x/4);
@@ -140,34 +144,25 @@ void metodaSiecznych(double (*funkcja)(double), double a, double b)
 
 void metodaNewtona(double (*funkcja)(double), double x0)
 {
-    double est=0, res=0, x, y;
+    double est=1, res=0, x, y = 1;
+    int i=0;
 
-    for(int i = 1; i<ITERACJE; i++)
-    {
-        double pochodna_x0 = pochodna(funkcja,x0);
-        x = x0 - funkcja(x0)/pochodna_x0;
+    while (i < ITERACJE && est > DOKLADNOSC && fabs(y) > DOKLADNOSC) {
+        i++;
+        x = x0;
+        if(fabs(sinx_pochodna(x)) <= DOKLADNOSC){
+             cout << "Rozbieżne";
+             break;
+        }
+
+        x0 = x - funkcja(x) / sinx_pochodna(x);
+        y = funkcja(x0);
+
         est = fabs(x0 - x);
-        res = fabs(funkcja(x));
-        x0 = x;
 
-        wypisz(i, x, est, res);
-        zapisz(i, x, est, res);
 
-        if(pochodna_x0 <= DOKLADNOSC)
-        {
-            plik << "blad, pochodna rowna zeru" << endl;
-            break;
-        }
-        if(res < DOKLADNOSC)
-        {
-            plik << "residuum break" << endl;
-            break;
-        }
-        if(est < DOKLADNOSC)
-        {
-            plik << "est break" << endl;
-            break;
-        }
+         wypisz(i, x, est, res);
+         zapisz(i, x, est, res);
     }
     cout << "Newton: x = " << x0 << endl;
 }
@@ -175,9 +170,6 @@ void metodaNewtona(double (*funkcja)(double), double x0)
 void metodaBisekcji(double (*funkcja)(double), double a, double b)
 {
     double est=0, res=0, x;
-    plik << setw(8) << "i" << setw(30) << right << "Kolejne przyblizenie" << setw(30) << right <<
-         "Estymator bledu" << setw(30) << right << "Residuum" << setw(30) << right << " " << setw(30) << right << " " << endl;
-    plik << "--------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl << endl;
 
     if(funkcja(a)*funkcja(b)>0 || a>b)
     {
@@ -227,7 +219,7 @@ int main(int argc, char** argv) {
 
     metodaPicarda(funkcja1, picard_sin, -8);
     metodaBisekcji(funkcja1, -2, 4);
-    metodaNewtona(funkcja1, 13.33);
+    metodaNewtona(funkcja1, 13);
     metodaSiecznych(funkcja1, -4, -2);
 
 
@@ -236,7 +228,7 @@ int main(int argc, char** argv) {
 
     metodaPicarda(funkcja2, picard_tan, -8);
     metodaBisekcji(funkcja2, 0, 0.6);
-    metodaNewtona(funkcja2, 1);
+    metodaNewtona(funkcja2, 2.5);
     metodaSiecznych(funkcja2, -5, 18);
 
     return 0;
