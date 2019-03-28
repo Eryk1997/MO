@@ -1,253 +1,42 @@
 #include <iostream>
-#include <string>
-#include <cstdlib>
-#include <fstream>
-#include <cmath>
+#include<math.h>
+#include<iomanip>
+#include<fstream>
+
+#define DOKLADNOSC 1e-16
+#define ITERACJE 1000
+
 using namespace std;
 
-typedef double(*funkcja)(double);
 fstream plik;
 
-const int N_MAX = 1000;
-const double TOLX = 1e-16; //|Xn-X(n-1)|=Epsilon <=tolx(~~0)
-const double TOLF = 1e-16; //|f(x)|<=tolf (~~0)
-//(miejsce zerowe:
-//tan w x~~2.20497296033312)
-//sin x=0
-
-//przedzia³y bisekcji:
-//: sin:
-const double a0_sin = -9;
-const double b0_sin = 10;
-const double x_0 = 2.0;
-const double x_1 = 0.4;
-
-//tan:
-const double a0_tg = 2.18;
-const double b0_tg = 2.23;
-
-const double x0_tan = 2.33;
-const double x1_tan = 2.25;
-
-double sinx(double x);
-double sinx_pochodna(double x);
-double tanx(double x);
-double tanx_pochodna(double x);
-double picard_sinx(double x);
-double picard_sinx_poch(double x);
-
-double picard_TANx_POCH(double x);
-void zbieznosc(funkcja f);
-void wypisz(int i, double x, double y, double estymator);
-void zapisz(int i, double x, double y, double estymator);
-
-void Metoda_siecznych(funkcja f, funkcja fp, double x0, double x1);
-void Metoda_Newtona(funkcja f, funkcja fp, double x1);
-void Bisekcja(funkcja f, double an, double bn);
-void Picard_sin(funkcja f, double x);
-
-//***********************************************************************************************************
-int main()
+//funkcja sinus
+double funkcja1(double x)
 {
-
-    plik.open("plik.txt", ios::out);
-
-    cout <<"SINUS" <<endl;
-    zbieznosc(picard_sinx_poch);
-    Picard_sin(picard_sinx,x_1);
-    Bisekcja(sinx, a0_sin, b0_sin);
-    cout << endl;
-    Metoda_Newtona(sinx, sinx_pochodna, x_1);
-    cout << endl;
-    Metoda_siecznych(sinx, sinx_pochodna, x_0, x_1);
-    cout << endl;
-
-    cout << "TANGENS" << endl;
-
-    zbieznosc(picard_TANx_POCH);
-    Bisekcja(tanx,a0_tg,b0_tg);
-    cout << endl;
-    Metoda_Newtona(tanx, tanx_pochodna, x1_tan);
-    cout << endl;
-    Metoda_siecznych(tanx, tanx_pochodna, x0_tan, x1_tan);
-    cout << endl;
-
-
-    //cout<<endl;
-
-    plik.close();
-
-    system("pause");
-    return 0;
+    return sin(x/4)*sin(x/4) - x;
 }
 
-
-
-
-//********************************************************************************
-void Metoda_siecznych(funkcja f, funkcja fp, double x0, double x1) {
-    double x, y = 1.0, yp, estymator = 1.0;
-    int    i = 0;
-
-    cout << "Metoda siecznych\nn:     x:               residuum:        estymator: " << endl;
-    plik << "Metoda siecznych\nn:     x:               residuum:        estymator: " << endl;
-
-    while (i < N_MAX && estymator > TOLX && fabs(y) > TOLF) {
-        //x=xn+2 , x1=xn+1,  x0=xn
-        i++;
-        //y = f(x1);
-        x = x1 - f(x1) / ((f(x1) - f(x0)) / (x1 - x0));
-        y = f(x);
-
-        estymator = fabs(x - x1);
-
-        x0 = x1;
-        x1 = x;
-
-
-        wypisz(i, x, y, estymator);
-        zapisz(i, x, y, estymator);
-
-
-    }
-    cout << endl<<"\nend\n\n";
-
+//funkcja tangens
+double funkcja2(double x)
+{
+    return tan(2*x)-x-1;
 }
 
-//*************************************************************
-void Metoda_Newtona(funkcja f, funkcja fp, double x1) {
-    //x=Xn fp=pochodna
-    //x1=Xn+1
-    double x, y = 1.0, estymator = 1.0;
-    int    i = 0;
-
-    cout << "Metoda Newtona \nn:     x:               residuum:        estymator: " << endl;
-    plik << "Metoda Newtona \nn:     x:               residuum:        estymator: " << endl;
-    while (i < N_MAX && estymator > TOLX && fabs(y) > TOLF) {
-        i++;
-
-        x = x1;
-        if (fabs(fp(x)) <= TOLF) {
-            cout << "rozbie¿ne"; break;
-        }
-
-        x1 = x - f(x) / fp(x);
-        y = f(x1);
-
-
-
-        estymator = fabs(x1 - x);
-
-
-
-        wypisz(i, x1, y, estymator);
-        zapisz(i, x1, y, estymator);
-
-
-    }
-    cout << endl;
+//liczenie pochodnej funkcji
+double pochodna(double(*funkcja)(double), double x)
+{
+    return (funkcja(x + DOKLADNOSC) - funkcja(x)) / DOKLADNOSC;
 }
 
-
-//******************************************************************
-void Bisekcja(funkcja f, double an, double bn) {
-    int i = 0;
-    double xs = 1, y = 1, estymator, a, b;
-
-    cout << "Metoda bisekcji \nn:     x:               residuum:        estymator: " << endl;
-    plik << "Metoda bisekcji \nn:     x:               residuum:        estymator: " << endl;
-
-    estymator = (bn - an) / 2.0;
-
-
-    while (i < N_MAX && estymator>TOLX && fabs(y)>TOLF)
-    {
-        xs = (bn + an) / 2.0;//xs-srodek przedzia³u
-        i++;
-        y = f(xs);
-        a = f(an);
-        b = f(bn);
-
-
-        if (a*b > 0) {
-            cout << "Przedzial nie spelnia zalozen" << endl;
-            break;
-        }
-
-        if (y*a < 0)
-            bn = xs;//[a:s]
-
-        if (y*b < 0)
-            an = xs;//[b:s]
-
-        wypisz(i, xs, y, estymator);
-        zapisz(i, xs, y, estymator);
-
-
-        estymator = (bn - an) / 2.0;
-    }
-    cout << endl;
+double picard_sin(double x)
+{
+    return sin(x/4)*sin(x/4);
 }
 
-//*******************************************************************
-
-void Picard_sin(funkcja f, double x) {
-    int i = 0;
-    double y = 1, estymator = 1;
-
-
-    cout << "Picard \nn:     x:               residuum:        estymator: " << endl;
-    plik << "Picard \nn:     x:               residuum:        estymator: " << endl;
-
-
-
-    while (i < N_MAX && estymator>TOLX && fabs(y)>TOLF) {
-        i++;
-        y = picard_sinx(x);
-        estymator = fabs(x - y);
-        x = y;//prosta y=x
-
-        wypisz(i, x, y, estymator);
-        zapisz(i, x, y, estymator);
-
-    }
-
-    cout << endl;
+double picard_tan(double x)
+{
+    return atan(x+1)/2;
 }
-
-
-//***********************************************************************************************************
-double sinx(double x) {
-    return sin(x / 4.0)*sin(x / 4.0) - x;
-}
-
-double sinx_pochodna(double x) {
-    return (sin(x / 2.0)) / 4.0 - 1;
-
-}
-
-double tanx(double x) {
-    return tan(2 * x) - x - 1;
-}
-
-double tanx_pochodna(double x) {
-    return 2 / (cos(2 * x)*cos(2 * x)) - 1;
-}
-
-double picard_sinx(double x) {
-    return sin(x / 4.0)*sin(x / 4.0);
-}
-
-
-double picard_TANx_POCH( double x) {
-    return 2.0 / (cos(2 * x)*cos(2 * x));
-}
-
-double picard_sinx_poch(double x) {
-    return (1.0 / 4.0)*sin(x / 2);
-}
-
-
 
 void wypisz(int i,double x,double y, double estymator) {
 
@@ -275,26 +64,180 @@ void zapisz(int i, double x, double y, double estymator)
         plik.width(15);
         plik << internal << estymator << "  " << endl;
     }
-
-}
-
-
-
-void zbieznosc(funkcja f) {
-    double x = -3.14;
-    for (x;x<3.14;x=x+0.1){
-
-    if (f(x) > 1) {
-        cout << "Picard: metoda nie jest zbiezna"<<endl<<endl;
-        break;
-    }
-
-    }
 }
 
 
 
 
+void metodaPicarda(double (*funkcja)(double), double (*picard_f)(double), double x0)
+{
+    double est=0, res=0, x;
+       for(int i = 1; i<ITERACJE; i++)
+    {
+        if(pochodna(picard_f, x0) > 1)
+        {
+            cout << "Funkcja rozbiezna!" << endl;
+            return;
+        }
+        x = picard_f(x0);
+        res = fabs(funkcja(x0));
+        est = fabs(x - x0);
+        x0 = x;
+
+        wypisz(i, x, est, res);
+        zapisz(i, x, est, res);
 
 
 
+        if(res < DOKLADNOSC)
+        {
+            plik << "residuum break" << endl;
+            break;
+        }
+        if(est < DOKLADNOSC)
+        {
+            plik << "estymator break" << endl;
+            break;
+        }
+    }
+    cout << "Picard: x = " << x << endl;
+}
+
+void metodaSiecznych(double (*funkcja)(double), double a, double b)
+{
+    double est=0, res=0, x;
+        for(int i = 1; i<ITERACJE; i++)
+    {
+        if(fabs(funkcja(a)) > fabs(funkcja(b)))
+        {
+            double temp = a;
+            a = b;
+            b = temp;
+        }
+
+        x = (b - a)/(funkcja(b)-funkcja(a));
+        b = a;
+        a = a - funkcja(a)*x;
+        est = fabs(b - a);
+        res = fabs(funkcja(a));
+
+        wypisz(i, x, est, res);
+        zapisz(i, x, est, res);
+
+        if(res < DOKLADNOSC)
+        {
+            plik << "residuum break" << endl;
+            break;
+        }
+        if(est < DOKLADNOSC)
+        {
+            plik << "estymator break" << endl;
+            break;
+        }
+    }
+    cout << "Sieczne: x = " << a << endl;
+}
+
+void metodaNewtona(double (*funkcja)(double), double x0)
+{
+    double est=0, res=0, x, y;
+
+    for(int i = 1; i<ITERACJE; i++)
+    {
+        double pochodna_x0 = pochodna(funkcja,x0);
+        x = x0 - funkcja(x0)/pochodna_x0;
+        est = fabs(x0 - x);
+        res = fabs(funkcja(x));
+        x0 = x;
+
+        wypisz(i, x, est, res);
+        zapisz(i, x, est, res);
+
+        if(pochodna_x0 <= DOKLADNOSC)
+        {
+            plik << "blad, pochodna rowna zeru" << endl;
+            break;
+        }
+        if(res < DOKLADNOSC)
+        {
+            plik << "residuum break" << endl;
+            break;
+        }
+        if(est < DOKLADNOSC)
+        {
+            plik << "est break" << endl;
+            break;
+        }
+    }
+    cout << "Newton: x = " << x0 << endl;
+}
+
+void metodaBisekcji(double (*funkcja)(double), double a, double b)
+{
+    double est=0, res=0, x;
+    plik << setw(8) << "i" << setw(30) << right << "Kolejne przyblizenie" << setw(30) << right <<
+         "Estymator bledu" << setw(30) << right << "Residuum" << setw(30) << right << " " << setw(30) << right << " " << endl;
+    plik << "--------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl << endl;
+
+    if(funkcja(a)*funkcja(b)>0 || a>b)
+    {
+        cout << "Podano zly przedzial" << endl;
+        return;
+    }
+
+    for(int i = 1; i<ITERACJE; i++)
+    {
+        x = (b + a)/2;
+        est = fabs((b - x));
+        res = fabs(funkcja(x));
+
+        if(funkcja(a)*funkcja(x)<0)
+            b = x;
+        else if (funkcja(b)*funkcja(x)<0)
+            a = x;
+        else
+        {
+            cout << "Bisekcja: x = " << x << " " << (a-b)/2 << endl;
+            return;
+        }
+
+        wypisz(i, x, est, res);
+        zapisz(i, x, est, res);
+
+        if(res < DOKLADNOSC) // kryterium przyblizenia wartosci funkcji blisko 0
+        {
+            plik << "residuum break" << endl;
+            break;
+        }
+        if(est < DOKLADNOSC)
+        {
+            plik << "estymator break" << endl;
+            break;
+        }
+    }
+    cout << "Bisekcja: x = " << x << endl;
+}
+
+
+int main(int argc, char** argv) {
+    plik.open("wyniki.txt", ios::out);
+
+    cout << "FUNKCJA SINUS" << endl;
+
+
+    metodaPicarda(funkcja1, picard_sin, -8);
+    metodaBisekcji(funkcja1, -2, 4);
+    metodaNewtona(funkcja1, 13.33);
+    metodaSiecznych(funkcja1, -4, -2);
+
+
+    cout << endl;
+    cout << "FUNKCJA TANGENS" << endl;
+
+    metodaPicarda(funkcja2, picard_tan, -8);
+    metodaBisekcji(funkcja2, 0, 0.6);
+    metodaNewtona(funkcja2, 1);
+    metodaSiecznych(funkcja2, -5, 18);
+
+    return 0;
+}
